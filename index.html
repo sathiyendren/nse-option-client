@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset=utf-8>
+  <title>NSE Option Trading</title>
+  <link rel="stylesheet" href="./css/style.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+  <script src="./js/index.js"></script>
+
+</head>
+
+<body onload="pageLoad()">
+  <div id="app-loading" class="app-loading">
+    <div class="lds-facebook">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+  </div>
+  <div class="header" id="app-header">
+    <div class="flex-container flex-header app-header">
+      <div class="flex-child overall"></div>
+      <div class="flex-child overall">
+        <h1>Option Chain Automation</h1>
+      </div>
+      <div class="flex-child overall">
+        <div class="flex-container flex-header app-header">
+          <div class="flex-child overall"></div>
+          <div class="flex-child overall"></div>
+          <div class="flex-child overall">
+            <h3>Start Automation </h3>
+          </div>
+          <div class="flex-child overall checkbox-label">
+            <label class="switch">
+              <input id="start-automation" type="checkbox">
+              <span class="slider round"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flex-container flex-header">
+      <div class="flex-child overall">
+        <!-- <p> -->
+        <table>
+          <tr>
+            <th>indian standard time </th>
+            <td id="todaysDate" class="align-right height-20px"></td>
+          </tr>
+        </table>
+        <!-- </p> -->
+
+      </div>
+      <div class="flex-child final">
+        <!-- <p> -->
+        <table>
+          <tr>
+            <th>Net Profit / Loss </th>
+            <td id="netProfit" class="align-right height-20px"></td>
+          </tr>
+        </table>
+        <!-- </p> -->
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="flex-container">
+
+      <div class="flex-child settings overall">
+        <p>
+        <table>
+          <tr>
+            <th>CE Trading Symbol </th>
+            <td id="ceTradingSymbol">
+              <input type="text" id="ceTradingSymbol-input" name="account">
+            </td>
+          </tr>
+          <tr>
+            <th>PE Trading Symbol </th>
+            <td id="peTradingSymbol">
+              <input type="text" id="peTradingSymbol-input" name="account">
+            </td>
+          </tr>
+          <!-- </table>
+      </p>
+      <p>
+        <table> -->
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+
+          <tr>
+            <th>Capital</th>
+            <td id="capital">
+              <input type="number" id="capital-input" name="capital" step="5000"> ₹
+            </td>
+          </tr>
+          <tr>
+            <th>Trailing Stop Loss</th>
+            <td id="trailingStopLoss">
+              <input type="number" id="trailingStopLoss-input" name="trailingStopLoss" step="500"> ₹
+            </td>
+          </tr>
+          <tr>
+            <th>Account</th>
+            <td id="account">
+              <!-- <input type="text" id="account-input" name="account"> -->
+              <select id="account-input" name="account">
+                <option value="paper">paper</option>
+                <option value="real">real</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <th>Trade Date</th>
+            <td>
+              <input type="date" name="tradeDate" id="theDate" />
+            </td>
+          </tr>
+
+
+          <tr>
+            <td class="no-border"></td>
+            <td class="no-border">
+              <button class="save-button no-border" id="save-button" onclick="saveUserSettings()">
+                Save
+              </button>
+            </td>
+
+          </tr>
+        </table>
+        </p>
+
+      </div>
+      <div class="flex-child final">
+        <p>
+        <table>
+          <tr>
+            <th>Total Profits Trades </th>
+            <td id="totalProfitOnTrades" class="align-right height-20px"></td>
+          </tr>
+          <tr>
+            <th>Total Losses Trades </th>
+            <td id="totalLossOnTrades" class="align-right height-20px"></td>
+          </tr>
+          <tr>
+            <th>Total Profit / Loss </th>
+            <td id="totalProfit" class="align-right height-20px"></td>
+          </tr>
+          <tr>
+            <th>Total Transaction Charges </th>
+            <td id="totalBrokerage" class="align-right height-20px"></td>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+          <tr>
+            <p></p>
+          </tr>
+
+          <tr>
+            <th>Total Number of Profit Trades </th>
+            <td id="noOfProfitTrades" class="align-right height-20px"></td>
+          </tr>
+          <tr>
+            <th>Total Number of Loss Trades </th>
+            <td id="noOfLossTrades" class="align-right height-20px"></td>
+          </tr>
+          <tr>
+            <th>Total Number of P/L Trades </th>
+            <td id="totalTrades" class="align-right height-20px"></td>
+          </tr>
+        </table>
+        </p>
+      </div>
+
+    </div>
+
+
+    <div id="active-trade-table-container-tab">
+      <div id="active-trade-table-container"></div>
+    </div>
+
+    <div id="trade-table-container-tab">
+      <div id="trade-table-container"></div>
+    </div>
+  </div>
+</body>
+
+</html>
