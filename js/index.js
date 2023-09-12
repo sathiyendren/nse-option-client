@@ -1,6 +1,10 @@
-appHostAndPort = 'http://localhost:3001';
 activeTransanctionProfit = 0;
-debugger;
+hCatogeries = [];
+hNetProfit = [];
+hProfit = [];
+hBuyPrice = [];
+hSellPrice = [];
+
 // Updates UI with current date time for reference
 function doDate() {
   let str = '';
@@ -21,8 +25,9 @@ function doDate() {
   );
   const now = new Date();
   const test = now.toLocaleString(undefined, { timeZone: 'Asia/Kolkata' });
-  str += `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]
-    } ${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+  str += `${days[now.getDay()]}, ${now.getDate()} ${
+    months[now.getMonth()]
+  } ${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
   document.getElementById('todaysDate').innerHTML = test;
 }
 
@@ -48,6 +53,8 @@ function createTradesTableFromObjects(data) {
   if (data.length > 0) {
     // Create table header row
     const keys = Object.keys(data[0]);
+
+
     for (const key of keys) {
       const headerCell = document.createElement('th');
 
@@ -225,7 +232,7 @@ function getAllTransactions() {
   const tradeDate = selectedTradeDate ? selectedTradeDate : todaysDate;
   console.log(`Selected Trade Date :: ${tradeDate}`);
 
-  fetch(`${appHostAndPort}/v1/transactions?limit=1000&sortBy=createdAt:desc&tradeDate=${tradeDate}`)
+  fetch(`http://localhost:3001/v1/transactions?limit=1000&sortBy=createdAt:desc`) // &tradeDate=${tradeDate}`)
     .then((response) => response.json())
     .then((data) => {
       const tableContainer = window.document.getElementById('trade-table-container');
@@ -236,6 +243,7 @@ function getAllTransactions() {
       // const tableContainer = window.document.getElementById('trade-table-container');
       tableContainer.innerHTML = '';
       tableContainer.appendChild(table);
+      showHighcharts();
       showLoading(false);
     });
 }
@@ -248,26 +256,55 @@ function getAllActiveTransactions() {
   const tradeDate = selectedTradeDate ? selectedTradeDate : todaysDate;
   console.log(`Selected Trade Date :: ${tradeDate}`);
 
-  fetch(`${appHostAndPort}/v1/transactions?limit=10&sortBy=createdAt:desc&active=true&tradeDate=${tradeDate}`)
+  fetch(`http://localhost:3001/v1/transactions?limit=10&sortBy=createdAt:desc&active=true`) // &tradeDate=${tradeDate}`)
     .then((response) => response.json())
     .then((data) => {
       const activeTableContainer = window.document.getElementById('active-trade-table-container');
       activeTableContainer.innerHTML = '';
 
-      transactions = data.results;
-      if (transactions.length > 0) {
-        activeTransanctionProfit = transactions[0].profit;
+      hCatogeries = [];
+      hProfit = [];
+      hNetProfit = [];
+      let i = 0;
+      let profit = 0;
+      let netprofit = 0;
+      const hTransactions = transactions.reverse();
+
+      for( const transaction of hTransactions) {
+        const cellProfit = transaction.profit;
+        netprofit += cellProfit-300;
+        profit += cellProfit;
+        hProfit.push(profit);
+        hNetProfit.push(netprofit);
+        i++;
+        hCatogeries.push(i);
       }
-      const table = createTradesTableFromObjects(transactions);
+
+      activeTransactions = data.results;
+      if (activeTransactions.length > 0) {
+        activeTransanctionProfit = activeTransactions[0].profit;
+
+        netprofit += activeTransanctionProfit-300;
+        profit += activeTransanctionProfit;
+        hProfit.push(profit);
+        hNetProfit.push(netprofit);
+        i++;
+        hCatogeries.push(i);
+
+      }
+      const table = createTradesTableFromObjects(activeTransactions);
       // const tableContainer = window.document.getElementById('active-trade-table-container');
       activeTableContainer.innerHTML = '';
       activeTableContainer.appendChild(table);
+
+
+
     });
 }
 
 // Get all the user settings
 function getAllUserSettings() {
-  fetch(`${appHostAndPort}/v1/settings`)
+  fetch(`http://localhost:3001/v1/settings`)
     .then((response) => response.json())
     .then((data) => {
       userSettings = data.results;
@@ -277,7 +314,7 @@ function getAllUserSettings() {
 
 // Get all the option Script
 function getAllOptionScripts() {
-  fetch(`${appHostAndPort}/v1/optionscripts`)
+  fetch(`http://localhost:3001/v1/optionscripts`)
     .then((response) => response.json())
     .then((data) => {
       optionScripts = data.results;
@@ -299,13 +336,12 @@ async function patchUserSettings(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
   };
-  fetch(`${appHostAndPort}/v1/settings/${settingsId}`, requestOptions)
+  fetch(`http://localhost:3001/v1/settings/${settingsId}`, requestOptions)
     .then((response) => response.json())
     .then((data) => {
       showLoading(false);
     });
 }
-
 
 // Update the user settings
 async function patchUserSettingsAutomation(data) {
@@ -319,7 +355,7 @@ async function patchUserSettingsAutomation(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
   };
-  fetch(`${appHostAndPort}/v1/settings/${settingsId}`, requestOptions)
+  fetch(`http://localhost:3001/v1/settings/${settingsId}`, requestOptions)
     .then((response) => response.json())
     .then((data) => {
       showLoading(false);
@@ -330,16 +366,16 @@ async function patchUserSettingsAutomation(data) {
 async function patchOptionScripts(data) {
   const optionScriptId = data.id;
   const optionScript = {
-    "tradingsymbol": data.tradingsymbol
+    tradingsymbol: data.tradingsymbol,
   };
   const requestOptions = {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(optionScript),
   };
-  fetch(`${appHostAndPort}/v1/optionscripts/${optionScriptId}`, requestOptions)
+  fetch(`http://localhost:3001/v1/optionscripts/${optionScriptId}`, requestOptions)
     .then((response) => response.json())
-    .then((data) => { });
+    .then((data) => {});
 }
 
 let transactions = [];
@@ -363,18 +399,54 @@ let timeoutID = setTimeout(() => {
   clearTimeout(timeoutID);
 }, 3001);
 
-function openTab(evt, cityName) {
-  var i, tabcontent, tablinks;
-  tabcontent = document.getElementsByClassName('tabcontent');
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = 'none';
-  }
-  tablinks = document.getElementsByClassName('tablinks');
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(' active', '');
-  }
-  document.getElementById(cityName).style.display = 'block';
-  evt.currentTarget.className += ' active';
+function showHighcharts() {
+  // Data retrieved https://en.wikipedia.org/wiki/List_of_cities_by_average_temperature
+  Highcharts.chart('container', {
+    chart: {
+      type: 'line',
+    },
+    title: {
+      text: 'Net Profit',
+    },
+    subtitle: {
+      text:
+        'Total Profit / Loss + Transaction Fees',
+    },
+    xAxis: {
+      categories: hCatogeries,
+    },
+    yAxis: {
+      title: {
+        text: 'Profit (₹)',
+      },
+    },
+    plotOptions: {
+      line: {
+        dataLabels: {
+          enabled: true,
+        },
+        enableMouseTracking: false,
+      },
+    },
+    series: [
+      {
+        name: 'Net Profit',
+        data: hNetProfit,
+      },
+      {
+        name: 'Profit',
+        data: hProfit,
+      },
+      // {
+      //   name: 'Buy Price',
+      //   data: [-2.9, -3.6, -0.6, 4.8, 10.2, 14.5, 17.6, 16.5, 12.0, 6.5, 2.0, -0.9],
+      // },
+      // {
+      //   name: 'Sell Price',
+      //   data: [-.9, -.6, -0.6, 4.8, 1.2, 14.5, 1.6, 16, 12.0, 6, 2.0, -0.9],
+      // },
+    ],
+  });
 }
 
 function startAutomation(event) {

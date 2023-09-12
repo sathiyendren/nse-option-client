@@ -3,9 +3,15 @@
 
 <head>
   <meta charset=utf-8>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval'; style-src 'self' 'unsafe-inline'; media-src *">
   <title>NSE Option Trading</title>
   <link rel="stylesheet" href="./css/style.css">
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+  <script src="./js/libs/highcharts/highcharts.js"></script>
+  <script src="./js/libs/highcharts/modules/data.js"></script>
+<script src="./js/libs/highcharts/modules/series-label.js"></script>
+<script src="./js/libs/highcharts/modules/exporting.js"></script>
+<script src="./js/libs/highcharts/modules/export-data.js"></script>
+<script src="./js/libs/highcharts/modules/accessibility.js"></script>
   <script src="./js/index.js"></script>
 
 </head>
@@ -237,10 +243,17 @@
       <div id="active-trade-table-container"></div>
     </div>
 
+    <figure class="highcharts-figure">
+      <div id="container"></div>
+      <!-- <p class="highcharts-description">
+          This chart shows how data labels can be added to the data series. This
+          can increase readability and comprehension for small datasets.
+      </p> -->
+  </figure>
+
     <div id="trade-table-container-tab">
       <div id="trade-table-container"></div>
     </div>
   </div>
 </body>
-
 </html>
