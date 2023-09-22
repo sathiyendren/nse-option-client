@@ -1,0 +1,9 @@
+{
+  "data": [
+    {
+      "server": "http://localhost:3001",
+      "tradingSymbol": "",
+      "optionScriptId": ""
+    }
+  ]
+}

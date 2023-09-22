@@ -1,51 +1,49 @@
+serverHostAndPort = 'http://localhost:3001';
+transactionsForAnalysis = null;
 activeTransanctionProfit = 0;
 hCatogeries = [];
 hNetProfit = [];
 hProfit = [];
 hBuyPrice = [];
 hSellPrice = [];
-
+hNetProfitAmount = 0;
+hTransactions = [];
 // Updates UI with current date time for reference
-function doDate() {
-  let str = '';
-  const days = new Array('Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday');
-  const months = new Array(
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December'
-  );
+function updateCurrentDateAndTime() {
   const now = new Date();
   const test = now.toLocaleString(undefined, { timeZone: 'Asia/Kolkata' });
-  str += `${days[now.getDay()]}, ${now.getDate()} ${
-    months[now.getMonth()]
-  } ${now.getFullYear()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+  // console.log(test.split(',')[0]);
   document.getElementById('todaysDate').innerHTML = test;
 }
 
 // Returns today date
 function todayDate() {
-  let date = new Date();
+  const date = new Date();
 
   let day = date.getDate();
   let month = date.getMonth() + 1;
-  let year = date.getFullYear();
-  if (month < 10) month = '0' + month;
-  if (day < 10) day = '0' + day;
-  let today = year + '-' + month + '-' + day;
+  const year = date.getFullYear();
+  if (month < 10) month = `0${month}`;
+  if (day < 10) day = `0${day}`;
+  const today = `${year}-${month}-${day}`;
+  return today;
+}
+
+// Returns today date
+function todaysTradeDate(selectedTradeDate) {
+  const now = new Date();
+  const indiaDateTime = now.toLocaleString(undefined, { timeZone: 'Asia/Kolkata' });
+  let today = indiaDateTime.split(',')[0];
+  if (!!selectedTradeDate) {
+    // debugger
+    const localDateArray = selectedTradeDate.split('-');
+    today = `${localDateArray[1]}/${localDateArray[2]}/${localDateArray[0]}`;
+  }
   return today;
 }
 
 // Create tablular transaction information of each trade taken on the selected date
-function createTradesTableFromObjects(data) {
+function createTradesTableFromObjects(data, isActive) {
   const table = document.createElement('table');
   const headerRow = document.createElement('tr');
   headerRow.setAttribute('id', 'table-header');
@@ -54,10 +52,8 @@ function createTradesTableFromObjects(data) {
     // Create table header row
     const keys = Object.keys(data[0]);
 
-
     for (const key of keys) {
       const headerCell = document.createElement('th');
-
       headerCell.textContent = key;
       if (
         key !== 'userId' &&
@@ -65,23 +61,40 @@ function createTradesTableFromObjects(data) {
         key !== 'active' &&
         key !== 'preStart' &&
         key !== 'currentPrice' &&
-        key !== 'id'
+        key !== 'id' &&
+        key !== 'lowestPrice'
       ) {
         headerRow.appendChild(headerCell);
       }
     }
+    if (!isActive) {
+      const headerCell = document.createElement('th');
+      headerCell.textContent = 'netProfit';
+      headerRow.appendChild(headerCell);
+    }
+
+    const cheaderCell = document.createElement('th');
+    cheaderCell.textContent = 'Chart';
+    headerRow.appendChild(cheaderCell);
+
     table.appendChild(headerRow);
 
+    let cumProfit = 0;
+    const totalProfitOnTrades = hNetProfitAmount;
     // Create table data rows
+    let i = 0;
     for (const obj of data) {
-      const isActive = obj['active'] === true;
+      cumProfit += obj.profit;
+      const isActive = obj.active === true;
       const dataRow = document.createElement('tr');
       for (const key of keys) {
         const dataCell = document.createElement('td');
         dataCell.textContent = obj[key];
         const list = dataCell.classList;
         if (key === 'profit') {
-          list.add(obj[key] > 0 ? 'green' : 'red');
+          // list.add(obj[key] > 0 ? 'green' : 'red');
+          list.add(obj.profit > 0 ? 'green' : Math.floor(obj.boughtPrice) === Math.floor(obj.highestPrice) ? 'cyan' : 'red');
+
           list.add('align-right');
           dataCell.textContent = obj[key].toLocaleString('en-IN', {
             maximumFractionDigits: 2,
@@ -93,11 +106,10 @@ function createTradesTableFromObjects(data) {
           if (isActive) {
             list.add('yellow');
           }
-        } else {
-          if (isActive && key !== 'profit') {
-            list.add('yellow');
-          }
+        } else if (isActive && key !== 'profit') {
+          list.add('yellow');
         }
+        list.add(obj.profit > 0 ? 'green' : 'red');
 
         if (
           key !== 'userId' &&
@@ -105,14 +117,66 @@ function createTradesTableFromObjects(data) {
           key !== 'active' &&
           key !== 'preStart' &&
           key !== 'currentPrice' &&
-          key !== 'id'
+          key !== 'id' &&
+          key !== 'lowestPrice'
         ) {
           dataRow.appendChild(dataCell);
         }
       }
+      if (!isActive) {
+        cumProfit = obj.profit - 300;
+        const dataCell = document.createElement('td');
+        dataCell.textContent = cumProfit.toLocaleString('en-IN', {
+          maximumFractionDigits: 2,
+          style: 'currency',
+          currency: 'INR',
+        });
+        const list = dataCell.classList;
+        list.add(obj.profit > 0 ? 'green' : 'red');
+        list.add('bold');
+        list.add('align-right');
+        dataRow.appendChild(dataCell);
+
+        const cDataCell = document.createElement('td');
+        cDataCell.textContent = 'Price ↑ ↓';
+        const clist = cDataCell.classList;
+        clist.add('antiquewhite');
+        clist.add('bold');
+        clist.add('align-right');
+        cDataCell.onclick = function (e) {
+          e = e || window.event;
+          var target = e.target || e.srcElement;
+          const index = target.getAttribute('index');
+          const transaction = transactions[index];
+          var modal = document.getElementById('myModal');
+          modal.style.display = 'block';
+          showHighchartsForSingleTransaction(transaction);
+        };
+        cDataCell.setAttribute('index', i);
+        dataRow.appendChild(cDataCell);
+      } else {
+        const cDataCell = document.createElement('td');
+        cDataCell.textContent = 'Price ↑ ↓';
+        const clist = cDataCell.classList;
+        clist.add('antiquewhite');
+        clist.add('bold');
+        clist.add('align-right');
+        cDataCell.onclick = function (e) {
+          e = e || window.event;
+          var target = e.target || e.srcElement;
+          const index = target.getAttribute('index');
+          const transaction = activeTransactions[index];
+          var modal = document.getElementById('myModal');
+          modal.style.display = 'block';
+          showHighchartsForSingleTransaction(transaction);
+        };
+        cDataCell.setAttribute('index', i);
+        dataRow.appendChild(cDataCell);
+      }
+
       table.appendChild(dataRow);
+      i++;
     }
-  } else {
   }
   return table;
 }
@@ -156,7 +220,7 @@ function updateApplicationWithData() {
   netProfitCell.innerHTML = netProfitStr;
   const list = netProfitCell.classList;
   list.value = '';
-  list.add(netProfit > 0 ? 'green' : 'red');
+  list.add(netProfit > 0 ? 'strong-green' : 'strong-red');
   list.add('align-right');
   list.add('height-20px');
 
@@ -218,108 +282,120 @@ function showLoading(show) {
     if (document.getElementById('app-loading')) {
       document.getElementById('app-loading').style.display = 'block';
     }
-  } else {
-    if (document.getElementById('app-loading')) {
-      document.getElementById('app-loading').style.display = 'none';
-    }
+  } else if (document.getElementById('app-loading')) {
+    document.getElementById('app-loading').style.display = 'none';
   }
 }
 // Get all the transactions for the selected trade date
 function getAllTransactions() {
-  const dateControl = document.querySelector('input[type="date"]');
-  const selectedTradeDate = dateControl.value;
-  let todaysDate = todayDate();
-  const tradeDate = selectedTradeDate ? selectedTradeDate : todaysDate;
-  console.log(`Selected Trade Date :: ${tradeDate}`);
+  return new Promise((resolve) => {
+    const dateControl = document.querySelector('input[type="date"]');
+    const selectedTradeDate = dateControl.value;
+    const tradeDate = todaysTradeDate(selectedTradeDate);
+    console.log(`Selected Trade Date :: ${tradeDate}`);
 
-  fetch(`http://localhost:3001/v1/transactions?limit=1000&sortBy=createdAt:desc`) // &tradeDate=${tradeDate}`)
-    .then((response) => response.json())
-    .then((data) => {
-      const tableContainer = window.document.getElementById('trade-table-container');
-      tableContainer.innerHTML = '';
-      transactions = data.results;
-      updateApplicationWithData();
-      const table = createTradesTableFromObjects(transactions);
-      // const tableContainer = window.document.getElementById('trade-table-container');
-      tableContainer.innerHTML = '';
-      tableContainer.appendChild(table);
-      showHighcharts();
-      showLoading(false);
-    });
+    fetch(`${serverHostAndPort}/v1/transactions?limit=1000&sortBy=createdAt:desc&tradeDate=${tradeDate}`)
+      .then((response) => response.json())
+      .then(
+        (data) => {
+          const tableContainer = window.document.getElementById('trade-table-container');
+          tableContainer.innerHTML = '';
+          transactions = data.results;
+
+          hCatogeries = [];
+          hProfit = [];
+          hNetProfit = [];
+          let i = 0;
+          let profit = 0;
+          let netprofit = 0;
+          hTransactions = transactions;
+
+          for (const transaction of hTransactions) {
+            const cellProfit = transaction.profit;
+            netprofit += cellProfit - 300;
+            profit += cellProfit;
+            hProfit.push(profit);
+            hNetProfit.push(netprofit);
+            i++;
+            hCatogeries.push(i);
+          }
+          hNetProfitAmount = netprofit;
+          // console.log(hNetProfitAmount);
+          updateApplicationWithData();
+          const table = createTradesTableFromObjects(transactions, false);
+          // const tableContainer = window.document.getElementById('trade-table-container');
+          tableContainer.innerHTML = '';
+          tableContainer.appendChild(table);
+          resolve('getAllTransactions completed');
+        },
+        (reason) => {
+          console.log(reason);
+          resolve('getAllTransactions not completed');
+        }
+      );
+  });
 }
 
 // Get all the transactions for the selected trade date
 function getAllActiveTransactions() {
-  const dateControl = document.querySelector('input[type="date"]');
-  const selectedTradeDate = dateControl.value;
-  let todaysDate = todayDate();
-  const tradeDate = selectedTradeDate ? selectedTradeDate : todaysDate;
-  console.log(`Selected Trade Date :: ${tradeDate}`);
+  return new Promise((resolve) => {
+    const dateControl = document.querySelector('input[type="date"]');
+    const selectedTradeDate = dateControl.value;
+    const tradeDate = todaysTradeDate(selectedTradeDate);
+    console.log(`Selected Trade Date :: ${tradeDate}`);
 
-  fetch(`http://localhost:3001/v1/transactions?limit=10&sortBy=createdAt:desc&active=true`) // &tradeDate=${tradeDate}`)
-    .then((response) => response.json())
-    .then((data) => {
-      const activeTableContainer = window.document.getElementById('active-trade-table-container');
-      activeTableContainer.innerHTML = '';
+    fetch(`${serverHostAndPort}/v1/transactions?limit=10&sortBy=createdAt:desc&active=true&tradeDate=${tradeDate}`)
+      .then((response) => response.json())
+      .then((data) => {
+        const activeTableContainer = window.document.getElementById('active-trade-table-container');
+        activeTableContainer.innerHTML = '';
 
-      hCatogeries = [];
-      hProfit = [];
-      hNetProfit = [];
-      let i = 0;
-      let profit = 0;
-      let netprofit = 0;
-      const hTransactions = transactions.reverse();
+        let i = 0;
+        let profit = 0;
+        let netprofit = 0;
 
-      for( const transaction of hTransactions) {
-        const cellProfit = transaction.profit;
-        netprofit += cellProfit-300;
-        profit += cellProfit;
-        hProfit.push(profit);
-        hNetProfit.push(netprofit);
-        i++;
-        hCatogeries.push(i);
-      }
+        activeTransactions = data.results;
+        if (activeTransactions.length > 0) {
+          activeTransanctionProfit = activeTransactions[0].profit;
 
-      activeTransactions = data.results;
-      if (activeTransactions.length > 0) {
-        activeTransanctionProfit = activeTransactions[0].profit;
-
-        netprofit += activeTransanctionProfit-300;
-        profit += activeTransanctionProfit;
-        hProfit.push(profit);
-        hNetProfit.push(netprofit);
-        i++;
-        hCatogeries.push(i);
-
-      }
-      const table = createTradesTableFromObjects(activeTransactions);
-      // const tableContainer = window.document.getElementById('active-trade-table-container');
-      activeTableContainer.innerHTML = '';
-      activeTableContainer.appendChild(table);
-
-
-
-    });
+          netprofit += activeTransanctionProfit - 300;
+          profit += activeTransanctionProfit;
+          hProfit.push(profit);
+          i++;
+          hCatogeries.push(i);
+        }
+        const table = createTradesTableFromObjects(activeTransactions, true);
+        activeTableContainer.innerHTML = '';
+        activeTableContainer.appendChild(table);
+        resolve('getAllActiveTransactions completed');
+      });
+  });
 }
 
 // Get all the user settings
 function getAllUserSettings() {
-  fetch(`http://localhost:3001/v1/settings`)
-    .then((response) => response.json())
-    .then((data) => {
-      userSettings = data.results;
-      updateUserSettings();
-    });
+  return new Promise((resolve) => {
+    fetch(`${serverHostAndPort}/v1/settings`)
+      .then((response) => response.json())
+      .then((data) => {
+        userSettings = data.results;
+        updateUserSettings();
+        resolve('getAllUserSettings completed');
+      });
+  });
 }
 
 // Get all the option Script
 function getAllOptionScripts() {
-  fetch(`http://localhost:3001/v1/optionscripts`)
-    .then((response) => response.json())
-    .then((data) => {
-      optionScripts = data.results;
-      updateOptionScripts();
-    });
+  return new Promise((resolve) => {
+    fetch(`${serverHostAndPort}/v1/optionscripts`)
+      .then((response) => response.json())
+      .then((data) => {
+        optionScripts = data.results;
+        updateOptionScripts();
+        resolve('getAllOptionScripts completed');
+      });
+  });
 }
 
 // Update the user settings
@@ -336,7 +412,7 @@ async function patchUserSettings(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
   };
-  fetch(`http://localhost:3001/v1/settings/${settingsId}`, requestOptions)
+  fetch(`${serverHostAndPort}/v1/settings/${settingsId}`, requestOptions)
     .then((response) => response.json())
     .then((data) => {
       showLoading(false);
@@ -355,7 +431,7 @@ async function patchUserSettingsAutomation(data) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(settings),
   };
-  fetch(`http://localhost:3001/v1/settings/${settingsId}`, requestOptions)
+  fetch(`${serverHostAndPort}/v1/settings/${settingsId}`, requestOptions)
     .then((response) => response.json())
     .then((data) => {
       showLoading(false);
@@ -363,32 +439,30 @@ async function patchUserSettingsAutomation(data) {
 }
 
 // Update the user settings
-async function patchOptionScripts(data) {
-  const optionScriptId = data.id;
+async function patchOptionScripts(serverHostPort, tradingSymbol, optionScriptId) {
   const optionScript = {
-    tradingsymbol: data.tradingsymbol,
+    tradingsymbol: tradingSymbol,
   };
   const requestOptions = {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(optionScript),
   };
-  fetch(`http://localhost:3001/v1/optionscripts/${optionScriptId}`, requestOptions)
-    .then((response) => response.json())
-    .then((data) => {});
+  return fetch(`${serverHostPort}/v1/optionscripts/${optionScriptId}`, requestOptions);
 }
 
 let transactions = [];
 let userSettings = [];
 let optionScripts = [];
 // Setting Todays Date to Trade Date
-let timeoutID = setTimeout(() => {
+const timeoutID = setTimeout(() => {
   const dateControl = document.querySelector('input[type="date"]');
+  dateControl.value = todayDate();
   dateControl.value = todayDate();
   dateControl.onchange = () => {
     showLoading(true);
     activeTransanctionProfit = 0;
-    getAllTransactions();
+    loadAllTransactions();
   };
   const saveButton = document.getElementById('save-button');
   saveButton.addEventListener('click', saveUserSettingsAndOptionScripts, false);
@@ -396,58 +470,11 @@ let timeoutID = setTimeout(() => {
   const automationCheckbox = document.getElementById('start-automation');
   automationCheckbox.addEventListener('change', startAutomation, false);
 
+  const closeButton = document.getElementById('close-button');
+  closeButton.addEventListener('click', closeModal, false);
+
   clearTimeout(timeoutID);
 }, 3001);
-
-function showHighcharts() {
-  // Data retrieved https://en.wikipedia.org/wiki/List_of_cities_by_average_temperature
-  Highcharts.chart('container', {
-    chart: {
-      type: 'line',
-    },
-    title: {
-      text: 'Net Profit',
-    },
-    subtitle: {
-      text:
-        'Total Profit / Loss + Transaction Fees',
-    },
-    xAxis: {
-      categories: hCatogeries,
-    },
-    yAxis: {
-      title: {
-        text: 'Profit (₹)',
-      },
-    },
-    plotOptions: {
-      line: {
-        dataLabels: {
-          enabled: true,
-        },
-        enableMouseTracking: false,
-      },
-    },
-    series: [
-      {
-        name: 'Net Profit',
-        data: hNetProfit,
-      },
-      {
-        name: 'Profit',
-        data: hProfit,
-      },
-      // {
-      //   name: 'Buy Price',
-      //   data: [-2.9, -3.6, -0.6, 4.8, 10.2, 14.5, 17.6, 16.5, 12.0, 6.5, 2.0, -0.9],
-      // },
-      // {
-      //   name: 'Sell Price',
-      //   data: [-.9, -.6, -0.6, 4.8, 1.2, 14.5, 1.6, 16, 12.0, 6, 2.0, -0.9],
-      // },
-    ],
-  });
-}
 
 function startAutomation(event) {
   const isChecked = event.currentTarget.checked;
@@ -457,15 +484,24 @@ function startAutomation(event) {
 }
 
 function saveUserSettingsAndOptionScripts() {
+  console.log(optionScriptJsons);
   if (optionScripts && optionScripts.length === 2) {
     const ceOptionScriptsForApp = optionScripts[0];
     const peOptionScriptsForApp = optionScripts[1];
     const ceTradingSymbolInput = document.getElementById('ceTradingSymbol-input').value;
     const peTradingSymbolInput = document.getElementById('peTradingSymbol-input').value;
     ceOptionScriptsForApp.tradingsymbol = ceTradingSymbolInput;
-    patchOptionScripts(ceOptionScriptsForApp);
     peOptionScriptsForApp.tradingsymbol = peTradingSymbolInput;
-    patchOptionScripts(peOptionScriptsForApp);
+
+    let optionscriptPromises = [];
+    optionscriptPromises = [
+      patchOptionScripts(serverHostAndPort, ceOptionScriptsForApp.tradingsymbol, ceOptionScriptsForApp.id),
+      patchOptionScripts(serverHostAndPort, peOptionScriptsForApp.tradingsymbol, peOptionScriptsForApp.id),
+    ];
+
+    Promise.all(optionscriptPromises).then((value) => {
+      console.log(value);
+    });
   }
   if (userSettings && userSettings.length > 0) {
     const userSettingsForApp = userSettings[0];
@@ -480,13 +516,219 @@ function saveUserSettingsAndOptionScripts() {
     patchUserSettings(userSettingsForApp);
   }
 }
+function loadAllTransactions() {
+  Promise.all([getAllTransactions(), getAllActiveTransactions()]).then((value) => {
+    console.log(value);
+    showHighchartsForAllTransactions();
+    showLoading(false);
+    if (!isTradingTime()) {
+      clearInterval(transactionInterval);
+    }
+  });
+}
 
-// window.onscroll = function () { updateStickyHeader() };
-// Add event listener to table
+function loadAllRequiredSettings() {
+  Promise.all([getAllUserSettings(), getAllOptionScripts()]).then((value) => {
+    console.log(value);
+  });
+}
 
-setInterval(doDate, 1000);
+function isTradingTime() {
+  const now = new Date(new Date().toLocaleString(undefined, { timeZone: 'Asia/Kolkata' }));
+  var startTime = '09:15:00';
+  var endTime = '15:29:30';
+
+  var s = startTime.split(':');
+  var dt1 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(s[0]), parseInt(s[1]), parseInt(s[2]));
+
+  var e = endTime.split(':');
+  var dt2 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(e[0]), parseInt(e[1]), parseInt(e[2]));
+
+  const isTradingTime = now >= dt1 && now <= dt2;
+  console.log(`Trading Time :: ${isTradingTime}`);
+  return isTradingTime;
+}
+
+function closeModal() {
+  var modal = document.getElementById('myModal');
+  modal.style.display = 'none';
+}
+
 showLoading(true);
-setInterval(getAllTransactions, 5000);
-setInterval(getAllActiveTransactions, 5000);
-getAllUserSettings();
-getAllOptionScripts();
+loadAllRequiredSettings();
+setInterval(updateCurrentDateAndTime, 1000);
+transactionInterval = setInterval(loadAllTransactions, 5000);
+
+function showHighchartsForAllTransactions() {
+  let ceTradingSymbol;
+  let peTradingSymbol;
+  if (optionScripts.length > 0) {
+    ceTradingSymbol = optionScripts[0].tradingsymbol;
+    peTradingSymbol = optionScripts[1].tradingsymbol;
+  }
+
+  Highcharts.chart('container', {
+    chart: {
+      type: 'spline',
+      scrollablePlotArea: {
+        minWidth: 600,
+        scrollPositionX: 1,
+      },
+    },
+    title: {
+      text: 'Net Profit/Loss (₹)',
+      align: 'center',
+    },
+    subtitle: {
+      text: `Option Trade Profit Chart for CALL ${ceTradingSymbol} and PUT ${peTradingSymbol}`,
+      align: 'center',
+    },
+    xAxis: {
+      text: ' Trade No.',
+      labels: {
+        overflow: 'justify',
+      },
+    },
+    yAxis: {
+      title: {
+        text: 'Profit (₹)',
+      },
+      minorGridLineWidth: 0,
+      gridLineWidth: 0,
+      alternateGridColor: null,
+      plotBands: [
+        {
+          // Light air
+          from: 500000,
+          to: 0,
+          color: 'rgba(68, 170, 213, 0.1)',
+          label: {
+            text: 'Profit',
+            style: {
+              color: '#606060',
+            },
+          },
+        },
+        {
+          // Light breeze
+          from: 0,
+          to: -500000,
+          color: 'rgba(0, 0, 0, 0)',
+          label: {
+            text: 'Loss',
+            style: {
+              color: '#606060',
+            },
+          },
+        },
+      ],
+    },
+    tooltip: {
+      valueSuffix: '₹`',
+    },
+    plotOptions: {
+      spline: {
+        lineWidth: 4,
+        states: {
+          hover: {
+            lineWidth: 5,
+          },
+        },
+        marker: {
+          enabled: false,
+        },
+        pointInterval: 1,
+        pointStart: 1,
+      },
+    },
+    series: [
+      {
+        name: 'Net Profit/Loss (₹)',
+        data: hNetProfit,
+      },
+      {
+        name: 'Profit (₹)',
+        data: hProfit,
+      },
+    ],
+    navigation: {
+      menuItemStyle: {
+        fontSize: '10px',
+      },
+    },
+  });
+}
+
+function showHighchartsForSingleTransaction(transaction) {
+  const priceVariation = [];
+  console.log(transaction.expiryDate);
+  if (!transaction.expiryDate.includes(',')) {
+    return;
+  }
+
+  const prices = transaction.expiryDate.split(',');
+  for (let index = 0; index < prices.length; index++) {
+    const price = parseFloat(prices[index]);
+    priceVariation.push(price);
+  }
+  Highcharts.chart('single-container', {
+    chart: {
+      type: 'spline',
+      scrollablePlotArea: {
+        minWidth: 600,
+        scrollPositionX: 1,
+      },
+    },
+    title: {
+      text: 'Transaction Price Change',
+      align: 'center',
+    },
+    subtitle: {
+      text: `Price variation for trade symbol ${transaction.strikePrice}`,
+      align: 'center',
+    },
+    xAxis: {
+      text: ' Tick',
+      labels: {
+        overflow: 'justify',
+      },
+    },
+    yAxis: {
+      title: {
+        text: 'Price (₹)',
+      },
+      minorGridLineWidth: 0,
+      gridLineWidth: 0,
+      alternateGridColor: null,
+    },
+    tooltip: {
+      valueSuffix: '₹`',
+    },
+    plotOptions: {
+      spline: {
+        lineWidth: 4,
+        states: {
+          hover: {
+            lineWidth: 5,
+          },
+        },
+        marker: {
+          enabled: false,
+        },
+        pointInterval: 1,
+        pointStart: 1,
+      },
+    },
+    series: [
+      {
+        name: 'Price Change (₹)',
+        data: priceVariation,
+      },
+    ],
+    navigation: {
+      menuItemStyle: {
+        fontSize: '10px',
+      },
+    },
+  });
+}

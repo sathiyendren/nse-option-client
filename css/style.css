@@ -30,11 +30,22 @@ th {
 }
 
 td.green {
-  background: lightgreen;
+  background: rgb(209, 250, 209);
 }
 
 td.red {
-  background: lightpink;
+  background: rgb(250, 232, 235);
+}
+td.strong-green {
+  background: rgb(82, 246, 82);
+}
+
+td.strong-red {
+  background: rgb(239, 111, 132);
+}
+
+td.cyan {
+  background: cyan;
 }
 
 .flex-container {
@@ -208,7 +219,7 @@ td.no-border {
   border: solid 2px black;
   border-left: 2px;
   border-right: 2px;
-  z-index: 998;
+  z-index: 500;
 }
 .main-content {
   margin-top: 110px;
@@ -369,4 +380,52 @@ h3 {
 
 .highcharts-data-table tr:hover {
     background: #f1f7ff;
+}
+
+td.bold {
+  font-weight: bold;
+}
+td.antiquewhite {
+  color: antiquewhite;
+  background: #2e4b6b;
+  cursor: pointer;
+}
+
+/* The Modal (background) */
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 900; /* Sit on top */
+  padding-top: 100px; /* Location of the box */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0,0,0); /* Fallback color */
+  background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+}
+
+/* Modal Content */
+.modal-content {
+  background-color: #fefefe;
+  margin: auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+/* The Close Button */
+.close {
+  color: #aaaaaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+  color: #000;
+  text-decoration: none;
+  cursor: pointer;
 }
